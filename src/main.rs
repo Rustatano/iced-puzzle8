@@ -1,6 +1,7 @@
 use iced::Length::Fill;
 use iced::widget::{button, center, column, horizontal_space, row, scrollable, text};
-use iced::{Element, Padding, Size, Task, Theme, widget};
+use iced::{Element, Size, Task, Theme, widget};
+use rand::seq::SliceRandom;
 
 pub fn main() -> iced::Result {
     iced::application("number8", App::update, App::view)
@@ -31,7 +32,7 @@ impl App {
         let theme = Theme::Moonfly;
         (
             Self {
-                grid_values: vec![vec![0, 0, 0], vec![0, 0, 0], vec![0, 0, 0]],
+                grid_values: Self::generate(),
                 theme,
                 button_heigth: 50.0,
                 button_width: 200.0,
@@ -43,7 +44,9 @@ impl App {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::Generate => self.generate(),
+            Message::Generate => {
+                self.grid_values = Self::generate();
+            }
 
             Message::Solve => self.solve(),
         }
@@ -68,7 +71,7 @@ impl App {
             .width(self.button_width),
         ]
         .spacing(30)
-        .padding(Padding::new(20.0));
+        .padding(20);
 
         let row1 = row![
             text(self.grid_values[0][0]).size(self.grid_element_size),
@@ -88,16 +91,26 @@ impl App {
             text(self.grid_values[2][2]).size(self.grid_element_size),
         ];
 
-        let grid = column![row1, row2, row3];
+        let grid = column![row1, row2, row3].padding(20);
 
         center(row![control_panel, horizontal_space().width(Fill), grid,].spacing(20)).into()
     }
 
-    fn generate(&self) {
-        println!("generate");
+    fn generate() -> Vec<Vec<i32>> {
+        let mut rng = rand::thread_rng();
+        let mut arr = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+        let mut out: Vec<Vec<i32>> = vec![vec![0, 0, 0,], vec![0, 0, 0,], vec![0, 0, 0,],];
+        arr.shuffle(&mut rng);
+
+        for i in 0..3 {
+            for j in 0..3 {
+                out[i][j] = arr[i * 3 + j];
+            }
+        }
+        out
     }
 
-    fn solve(&self) {
+    fn solve(&mut self) {
         println!("solve");
     }
 

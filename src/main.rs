@@ -1,5 +1,6 @@
-use iced::widget::{button, column, row, text};
-use iced::{Center, Element, Padding, Size, Task, Theme, widget};
+use iced::Length::Fill;
+use iced::widget::{button, center, column, horizontal_space, row, scrollable, text};
+use iced::{Element, Padding, Size, Task, Theme, widget};
 
 pub fn main() -> iced::Result {
     iced::application("number8", App::update, App::view)
@@ -49,7 +50,7 @@ impl App {
     }
 
     fn view(&self) -> Element<Message> {
-        let buttons = column![
+        let control_panel = column![
             button(text("Generate").size(30))
                 .on_press(Message::Generate)
                 .width(self.button_width)
@@ -58,6 +59,13 @@ impl App {
                 .on_press(Message::Solve)
                 .width(self.button_width)
                 .height(self.button_heigth),
+            scrollable(column![
+                text("step 1").size(50),
+                text("step 2").size(50),
+                text("step 3").size(50),
+            ])
+            .height(100)
+            .width(self.button_width),
         ]
         .spacing(30)
         .padding(Padding::new(20.0));
@@ -82,7 +90,7 @@ impl App {
 
         let grid = column![row1, row2, row3];
 
-        row![buttons, grid].spacing(200).into()
+        center(row![control_panel, horizontal_space().width(Fill), grid,].spacing(20)).into()
     }
 
     fn generate(&self) {

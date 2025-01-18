@@ -1868,6 +1868,7 @@ name = "number8"
 version = "0.1.0"
 dependencies = [
  "iced",
+ "rand",
 ]
 
 [[package]]

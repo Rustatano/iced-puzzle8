@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
 use iced::Alignment::Center;
@@ -6,9 +7,9 @@ use iced::widget::{
     button, center, column, container, horizontal_space, row, scrollable, slider, text,
 };
 use iced::{Element, Size, Task, Theme, widget};
-use rand::seq::SliceRandom;
+use rand::Rng;
 
-const FINAL_MATRIX: [[u8; 3]; 3] = [[0, 1, 2], [3, 4, 5], [6, 7, 8]];
+const FINAL_MATRIX: [[u8; 3]; 3] = [[1, 2, 3], [4, 5, 6], [7, 8, 0]];
 
 pub fn main() -> iced::Result {
     iced::application("number8", App::update, App::view)
@@ -20,7 +21,7 @@ pub fn main() -> iced::Result {
         .run_with(App::new)
 }
 
-#[derive(Eq, Ord, PartialEq, PartialOrd, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Node {
     parent: Box<Option<Node>>,
     matrix: Vec<Vec<u8>>,
@@ -28,6 +29,30 @@ pub struct Node {
     cost: u32,
     level: u32,
 }
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.cost < other.cost {
+            return Ordering::Greater;
+        } else if self.cost > other.cost {
+            return Ordering::Less;
+        }
+        Ordering::Equal
+    }
+}
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        (self.level, &self.level) == (other.level, &other.level)
+    }
+}
+
+impl Eq for Node {}
 
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
@@ -68,6 +93,7 @@ impl App {
             }
 
             Message::Solve => self.solve(),
+
             Message::ChangeGridSize(size) => {
                 self.matrix_size = size;
             }
@@ -192,13 +218,23 @@ impl App {
 
         heap.push(root);
 
+        //let mut current_level = 0;
         while !heap.is_empty() {
             let minimum = heap.pop().unwrap();
 
-            println!("{}", minimum.level);
+            /*if minimum.level > current_level {
+                current_level = minimum.level;
+                println!("{}", current_level);
+            }*/
 
             if minimum.cost == 0 {
                 self.print_path(&minimum);
+                println!("-------");
+                return;
+            } else if minimum.level > 31 {
+                println!("Unsolvable");
+                println!("-------");
+                return;
             }
 
             for i in 0..4 {
@@ -224,15 +260,17 @@ impl App {
             }
             None => (),
         };
+        //self.print_matrix(&root.matrix);
     }
 
     fn print_matrix(&self, matrix: &Vec<Vec<u8>>) {
         for y in 0..self.matrix_size {
             for x in 0..self.matrix_size {
-                print!("{}", matrix[x as usize][y as usize]);
+                print!("{} ", matrix[y as usize][x as usize]);
             }
             println!();
         }
+        println!("\n");
     }
 
     fn is_safe(&self, x: i8, y: i8) -> bool {
@@ -245,20 +283,39 @@ impl App {
 }
 
 fn generate(matrix_size: u8) -> Vec<Vec<u8>> {
-    let mut rng = rand::thread_rng();
-    let mut arr = vec![];
-    for i in 0..matrix_size * matrix_size {
-        arr.push(i);
-    }
-    let mut out = vec![];
-    arr.shuffle(&mut rng);
+    let mut out = vec![
+        vec![FINAL_MATRIX[0][0], FINAL_MATRIX[0][1], FINAL_MATRIX[0][2]],
+        vec![FINAL_MATRIX[1][0], FINAL_MATRIX[1][1], FINAL_MATRIX[1][2]],
+        vec![FINAL_MATRIX[2][0], FINAL_MATRIX[2][1], FINAL_MATRIX[2][2]],
+    ];
 
-    for i in 0..matrix_size {
-        out.push(vec![]);
-        for j in 0..matrix_size {
-            out[i as usize].push(0);
-            out[i as usize][j as usize] = arr[(i * matrix_size + j) as usize];
+    for _ in 1..rand::thread_rng().gen_range(2..31) {
+        let mut empty_tile = [0, 0];
+        for y in 0..matrix_size {
+            for x in 0..matrix_size {
+                if out[y as usize][x as usize] == 0 {
+                    empty_tile = [x as i8, y as i8];
+                }
+            }
         }
+        let mut moves = vec![];
+        if empty_tile[0] > 0 {
+            moves.push([-1, 0]);
+        }
+        if empty_tile[0] < 2 {
+            moves.push([1, 0]);
+        }
+        if empty_tile[1] > 0 {
+            moves.push([0, -1]);
+        }
+        if empty_tile[1] < 2 {
+            moves.push([0, 1]);
+        }
+        let mov = moves[rand::thread_rng().gen_range(0..moves.len()) as usize];
+        let tmp = out[empty_tile[1] as usize][empty_tile[0] as usize];
+        out[empty_tile[1] as usize][empty_tile[0] as usize] =
+            out[(empty_tile[1] + mov[1]) as usize][(empty_tile[0] + mov[0]) as usize];
+        out[(empty_tile[1] + mov[1]) as usize][(empty_tile[0] + mov[0]) as usize] = tmp;
     }
 
     out
@@ -275,6 +332,7 @@ fn calculate_cost(matrix: &Vec<Vec<u8>>, matrix_size: u8) -> u32 {
             }
         }
     }
+
     cost
 }
 

@@ -79,7 +79,7 @@ impl App {
                 matrix: generate(3),
                 theme,
                 button_heigth: 50.0,
-                button_width: 200.0,
+                button_width: 250.0,
                 matrix_element_size: 80.0,
                 matrix_size: 3,
                 steps: vec![],
@@ -211,11 +211,11 @@ impl App {
     fn trace_path(&mut self, root: &Node) {
         match *root.parent.clone() {
             Some(node) => {
-                self.str_steps.push(("step".to_string(), root.level + 1));
+                self.str_steps.push(("step ".to_string(), root.level + 1));
                 self.trace_path(&node);
                 self.save_step(&node.matrix);
             }
-            None => self.str_steps.push(("step".to_string(), root.level + 1)),
+            None => self.str_steps.push(("step ".to_string(), root.level + 1)),
         };
     }
 

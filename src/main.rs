@@ -12,7 +12,7 @@ use rand::Rng;
 const FINAL_MATRIX: [[u8; 3]; 3] = [[1, 2, 3], [4, 5, 6], [7, 8, 0]];
 
 pub fn main() -> iced::Result {
-    iced::application("number8", App::update, App::view)
+    iced::application("iced-puzzle8", App::update, App::view)
         .theme(App::theme)
         .window_size(Size {
             width: 1000.0,

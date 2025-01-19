@@ -1366,6 +1366,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "iced-puzzle8"
+version = "0.1.0"
+dependencies = [
+ "iced",
+ "rand",
+]
+
+[[package]]
 name = "iced_core"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1861,14 +1869,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.96",
-]
-
-[[package]]
-name = "number8"
-version = "0.1.0"
-dependencies = [
- "iced",
- "rand",
 ]
 
 [[package]]

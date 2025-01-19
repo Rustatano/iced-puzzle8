@@ -21,7 +21,7 @@ pub fn main() -> iced::Result {
         .run_with(App::new)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Eq, Clone)]
 pub struct Node {
     parent: Box<Option<Node>>,
     matrix: Vec<Vec<u8>>,
@@ -52,13 +52,12 @@ impl PartialEq for Node {
     }
 }
 
-impl Eq for Node {}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Message {
     Generate,
     Solve,
     ChangeGridSize(u8),
+    Step(u32),
 }
 
 struct App {
@@ -69,7 +68,7 @@ struct App {
     matrix_element_size: f32,
     matrix_size: u8,
     steps: Vec<Vec<Vec<u8>>>,
-    str_steps: Vec<String>,
+    str_steps: Vec<(String, u32)>,
 }
 
 impl App {
@@ -95,12 +94,16 @@ impl App {
             Message::Generate => {
                 self.matrix = generate(self.matrix_size);
                 self.str_steps = vec![];
+                self.steps = vec![];
             }
 
             Message::Solve => self.solve(),
 
             Message::ChangeGridSize(size) => {
                 self.matrix_size = size;
+            }
+            Message::Step(s) => {
+                self.matrix = self.steps[s as usize - 1].clone();
             }
         }
     }
@@ -120,70 +123,30 @@ impl App {
                 .on_press(Message::Solve)
                 .width(self.button_width)
                 .height(self.button_heigth),
-            scrollable(column(self.str_steps.iter().map(|step| text(step).size(50).into())))
-                .height(100)
-                .width(self.button_width),
+            scrollable(column(self.str_steps.iter().map(|step| {
+                button(text(step.0.clone() + &step.1.to_string()).size(50))
+                    .on_press(Message::Step(step.1))
+                    .width(self.button_width)
+                    .into()
+            })))
+            .height(Fill)
+            .width(self.button_width),
         ]
         .spacing(30)
         .padding(20)
         .height(Fill);
 
-        let matrix = container(column![
-            row![
-                text(self.matrix[0][0])
+        let matrix = container(column(self.matrix.iter().map(|r| {
+            row(r.iter().map(|element| {
+                text(element)
                     .size(self.matrix_element_size)
                     .width(self.matrix_element_size)
                     .align_x(Center)
-                    .align_y(Center),
-                text(self.matrix[0][1])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-                text(self.matrix[0][2])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-            ],
-            row![
-                text(self.matrix[1][0])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-                text(self.matrix[1][1])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-                text(self.matrix[1][2])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-            ],
-            row![
-                text(self.matrix[2][0])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-                text(self.matrix[2][1])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-                text(self.matrix[2][2])
-                    .size(self.matrix_element_size)
-                    .width(self.matrix_element_size)
-                    .align_x(Center)
-                    .align_y(Center),
-            ]
-        ])
-        .padding(20)
-        .style(container::dark)
-        .height(Fill);
+                    .align_y(Center)
+                    .into()
+            }))
+            .into()
+        })));
 
         center(row![control_panel, horizontal_space().width(Fill), matrix,].spacing(20)).into()
     }
@@ -220,14 +183,13 @@ impl App {
             let minimum = heap.pop().unwrap();
 
             if minimum.cost == 0 {
-                self.print_path(&minimum);
-                self.print_matrix(&minimum.matrix);
+                self.trace_path(&minimum);
+                self.save_step(&minimum.matrix);
                 self.str_steps.reverse();
-                println!("-------");
+                self.matrix = minimum.matrix;
                 return;
             } else if minimum.level > 31 {
-                println!("Unsolvable");
-                println!("-------");
+                // do smth
                 return;
             }
 
@@ -246,26 +208,19 @@ impl App {
         }
     }
 
-    fn print_path(&mut self, root: &Node) {
+    fn trace_path(&mut self, root: &Node) {
         match *root.parent.clone() {
             Some(node) => {
-                self.str_steps.push(format!("step {}", root.level + 1));
-                self.print_path(&node);
-                self.print_matrix(&node.matrix);
+                self.str_steps.push(("step".to_string(), root.level + 1));
+                self.trace_path(&node);
+                self.save_step(&node.matrix);
             }
-            None => self.str_steps.push(format!("step {}", root.level + 1)),
+            None => self.str_steps.push(("step".to_string(), root.level + 1)),
         };
     }
 
-    fn print_matrix(&mut self, matrix: &Vec<Vec<u8>>) {
-        for y in 0..self.matrix_size {
-            for x in 0..self.matrix_size {
-                self.steps.push(matrix.clone());
-                print!("{} ", matrix[y as usize][x as usize]);
-            }
-            println!();
-        }
-        println!("\n");
+    fn save_step(&mut self, matrix: &Vec<Vec<u8>>) {
+        self.steps.push(matrix.clone());
     }
 
     fn is_safe(&self, x: i8, y: i8) -> bool {
@@ -284,7 +239,7 @@ fn generate(matrix_size: u8) -> Vec<Vec<u8>> {
         vec![FINAL_MATRIX[2][0], FINAL_MATRIX[2][1], FINAL_MATRIX[2][2]],
     ];
 
-    for _ in 1..rand::thread_rng().gen_range(3..100) {
+    for _ in 1..rand::thread_rng().gen_range(3..31) {
         let mut empty_tile = [0, 0];
         for y in 0..matrix_size {
             for x in 0..matrix_size {

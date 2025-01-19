@@ -188,9 +188,6 @@ impl App {
     }
 
     fn solve(&mut self) {
-        // max turns: 31
-        // https://www.geeksforgeeks.org/8-puzzle-problem-using-branch-and-bound/
-
         let row = [1, 0, -1, 0];
         let col = [0, -1, 0, 1];
 
@@ -218,17 +215,12 @@ impl App {
 
         heap.push(root);
 
-        //let mut current_level = 0;
         while !heap.is_empty() {
             let minimum = heap.pop().unwrap();
 
-            /*if minimum.level > current_level {
-                current_level = minimum.level;
-                println!("{}", current_level);
-            }*/
-
             if minimum.cost == 0 {
                 self.print_path(&minimum);
+                self.print_matrix(&minimum.matrix);
                 println!("-------");
                 return;
             } else if minimum.level > 31 {
@@ -260,7 +252,6 @@ impl App {
             }
             None => (),
         };
-        //self.print_matrix(&root.matrix);
     }
 
     fn print_matrix(&self, matrix: &Vec<Vec<u8>>) {

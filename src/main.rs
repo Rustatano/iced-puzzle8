@@ -68,6 +68,8 @@ struct App {
     button_width: f32,
     matrix_element_size: f32,
     matrix_size: u8,
+    steps: Vec<Vec<Vec<u8>>>,
+    str_steps: Vec<String>,
 }
 
 impl App {
@@ -81,6 +83,8 @@ impl App {
                 button_width: 200.0,
                 matrix_element_size: 80.0,
                 matrix_size: 3,
+                steps: vec![],
+                str_steps: vec![],
             },
             widget::focus_next(),
         )
@@ -90,6 +94,7 @@ impl App {
         match message {
             Message::Generate => {
                 self.matrix = generate(self.matrix_size);
+                self.str_steps = vec![];
             }
 
             Message::Solve => self.solve(),
@@ -115,13 +120,9 @@ impl App {
                 .on_press(Message::Solve)
                 .width(self.button_width)
                 .height(self.button_heigth),
-            scrollable(column![
-                text("step 1").size(50),
-                text("step 2").size(50),
-                text("step 3").size(50),
-            ])
-            .height(100)
-            .width(self.button_width),
+            scrollable(column(self.str_steps.iter().map(|step| text(step).size(50).into())))
+                .height(100)
+                .width(self.button_width),
         ]
         .spacing(30)
         .padding(20)
@@ -221,6 +222,7 @@ impl App {
             if minimum.cost == 0 {
                 self.print_path(&minimum);
                 self.print_matrix(&minimum.matrix);
+                self.str_steps.reverse();
                 println!("-------");
                 return;
             } else if minimum.level > 31 {
@@ -244,19 +246,21 @@ impl App {
         }
     }
 
-    fn print_path(&self, root: &Node) {
+    fn print_path(&mut self, root: &Node) {
         match *root.parent.clone() {
             Some(node) => {
+                self.str_steps.push(format!("step {}", root.level + 1));
                 self.print_path(&node);
                 self.print_matrix(&node.matrix);
             }
-            None => (),
+            None => self.str_steps.push(format!("step {}", root.level + 1)),
         };
     }
 
-    fn print_matrix(&self, matrix: &Vec<Vec<u8>>) {
+    fn print_matrix(&mut self, matrix: &Vec<Vec<u8>>) {
         for y in 0..self.matrix_size {
             for x in 0..self.matrix_size {
+                self.steps.push(matrix.clone());
                 print!("{} ", matrix[y as usize][x as usize]);
             }
             println!();
@@ -280,7 +284,7 @@ fn generate(matrix_size: u8) -> Vec<Vec<u8>> {
         vec![FINAL_MATRIX[2][0], FINAL_MATRIX[2][1], FINAL_MATRIX[2][2]],
     ];
 
-    for _ in 1..rand::thread_rng().gen_range(2..31) {
+    for _ in 1..rand::thread_rng().gen_range(3..100) {
         let mut empty_tile = [0, 0];
         for y in 0..matrix_size {
             for x in 0..matrix_size {
@@ -302,8 +306,8 @@ fn generate(matrix_size: u8) -> Vec<Vec<u8>> {
         if empty_tile[1] < 2 {
             moves.push([0, 1]);
         }
-        let mov = moves[rand::thread_rng().gen_range(0..moves.len()) as usize];
-        let tmp = out[empty_tile[1] as usize][empty_tile[0] as usize];
+        let mov = moves[rand::thread_rng().gen_range(0..moves.len())];
+        let tmp = out[empty_tile[1] as usize][empty_tile[0] as usize].clone();
         out[empty_tile[1] as usize][empty_tile[0] as usize] =
             out[(empty_tile[1] + mov[1]) as usize][(empty_tile[0] + mov[0]) as usize];
         out[(empty_tile[1] + mov[1]) as usize][(empty_tile[0] + mov[0]) as usize] = tmp;
